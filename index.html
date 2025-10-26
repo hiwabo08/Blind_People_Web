@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gemini Video Object Detection</title>
+  <style>
+    video, canvas {
+      width: 400px;
+      height: 300px;
+      border-radius: 10px;
+      border: 2px solid #007bff;
+    }
+    #result {
+      margin-top: 10px;
+      font-size: 1.2em;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎥 Gemini Object Detection</h2>
+  <video id="video" autoplay></video>
+  <canvas id="canvas" hidden></canvas>
+  <div id="result">Detecting objects...</div>
+
+  <script type="module">
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    const genAI = new GoogleGenerativeAI("AIzaSyA-pKwWpXu2EZkaPh5D-RSvIReGWKuIzXA");
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultDiv = document.getElementById('result');
+
+    // Step 1: Access the user's camera
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    });
+
+    // Step 2: Send frame to Gemini for detection
+    async function detectObjects() {
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const frame = canvas.toDataURL('image/jpeg');
+
+      const response = await model.generateContent([
+        "Identify all visible objects in this image.",
+        { inlineData: { mimeType: "image/jpeg", data: frame.split(',')[1] } }
+      ]);
+
+      const text = await response.response.text();
+      resultDiv.innerText = `🧠 Detected: ${text}`;
+    }
+
+    // Step 3: Repeat detection every 5 seconds
+    setInterval(detectObjects, 5000);
+  </script>
+</body>
+</html>
